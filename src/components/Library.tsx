@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Drama, Episode, AdminAccount } from "../types";
-import { Search, Flame, Star, Play, Eye, ChevronLeft, Lock, Unlock, Film, Shield, Mail, Key, UserCheck, AlertCircle, X } from "lucide-react";
+import { Search, Flame, Star, Play, Eye, ChevronLeft, Lock, Unlock, Film, Shield, Mail, Key, UserCheck, AlertCircle, X, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface LibraryProps {
@@ -12,12 +12,31 @@ interface LibraryProps {
   admins: AdminAccount[];
   onAdminLogin: (username: string, pass: string) => boolean;
   isDarkMode?: boolean;
+  watchHistory?: {
+    dramaId: string;
+    episodeId: number;
+    watchedAt: string;
+  }[];
 }
 
-export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favorites, toggleFavorite, admins, onAdminLogin, isDarkMode = true }: LibraryProps) {
+export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favorites, toggleFavorite, admins, onAdminLogin, isDarkMode = true, watchHistory = [] }: LibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedDrama, setSelectedDrama] = useState<Drama | null>(null);
+
+  const getWatchProgress = (dramaId: string, episodesCount: number) => {
+    const watched = watchHistory.filter(h => h.dramaId === dramaId);
+    if (watched.length === 0) return 0;
+    
+    // Find unique episodeIds watched
+    const uniqueEpisodes = Array.from(new Set(watched.map(h => h.episodeId)));
+    const totalCount = episodesCount || 1;
+    return Math.min(100, Math.round((uniqueEpisodes.length / totalCount) * 100));
+  };
+
+  const isEpisodeWatched = (dramaId: string, episodeId: number) => {
+    return watchHistory.some(h => h.dramaId === dramaId && h.episodeId === episodeId);
+  };
   
   // Skeleton loading states
   const [isGridLoading, setIsGridLoading] = useState(true);
@@ -165,7 +184,21 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                     🔥 Trending #1
                   </span>
 
-                  <div className="absolute bottom-4 left-4 right-4">
+                  {/* Hero Watch Progress Badge */}
+                  {getWatchProgress(heroDrama.id, heroDrama.episodesCount) > 0 && (() => {
+                    const progress = getWatchProgress(heroDrama.id, heroDrama.episodesCount);
+                    return (
+                      <span className={`absolute top-3 right-3 text-[10px] font-black border px-2.5 py-1 rounded-full uppercase tracking-wider backdrop-blur-md shadow ${
+                        progress === 100 
+                          ? "bg-emerald-500/95 text-white border-emerald-400/30" 
+                          : "bg-accent/95 text-white border-accent/30"
+                      }`}>
+                        {progress === 100 ? "✓ Selesai" : `${progress}% Ditonton`}
+                      </span>
+                    );
+                  })()}
+
+                  <div className="absolute bottom-5 left-4 right-4">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
                         {heroDrama.category}
@@ -183,6 +216,20 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                       {heroDrama.description}
                     </p>
                   </div>
+
+                  {/* Hero Watch Progress Bar */}
+                  {getWatchProgress(heroDrama.id, heroDrama.episodesCount) > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-950/60 overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 ${
+                          getWatchProgress(heroDrama.id, heroDrama.episodesCount) === 100 
+                            ? "bg-emerald-500" 
+                            : "bg-accent"
+                        }`}
+                        style={{ width: `${getWatchProgress(heroDrama.id, heroDrama.episodesCount)}%` }}
+                      />
+                    </div>
+                  )}
                 </motion.div>
               )
             )}
@@ -246,7 +293,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                       <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-transparent" />
                       
                       {/* View Count Overlay */}
-                      <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] text-neutral-200 font-semibold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                      <div className="absolute bottom-2.5 left-2 flex items-center gap-1 text-[10px] text-neutral-200 font-semibold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-xs">
                         <Eye className="w-3 h-3 text-neutral-400" />
                         {drama.views} Views
                       </div>
@@ -255,6 +302,34 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                       <span className="absolute top-2 left-2 text-[9px] font-black bg-neutral-950/80 text-accent border border-accent/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
                         {drama.category.split("/")[0]}
                       </span>
+
+                      {/* Watch Progress Badge */}
+                      {getWatchProgress(drama.id, drama.episodesCount) > 0 && (() => {
+                        const progress = getWatchProgress(drama.id, drama.episodesCount);
+                        return (
+                          <span className={`absolute top-2 right-2 text-[9px] font-black border px-2 py-0.5 rounded-md uppercase tracking-wider backdrop-blur-md shadow-md ${
+                            progress === 100 
+                              ? "bg-emerald-500/95 text-white border-emerald-400/30" 
+                              : "bg-accent/95 text-white border-accent/30"
+                          }`}>
+                            {progress === 100 ? "SELESAI" : `${progress}% DITONTON`}
+                          </span>
+                        );
+                      })()}
+
+                      {/* Watch Progress Bar */}
+                      {getWatchProgress(drama.id, drama.episodesCount) > 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-950/60 overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              getWatchProgress(drama.id, drama.episodesCount) === 100 
+                                ? "bg-emerald-500" 
+                                : "bg-accent"
+                            }`}
+                            style={{ width: `${getWatchProgress(drama.id, drama.episodesCount)}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-3 flex-1 flex flex-col justify-between">
@@ -434,7 +509,13 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                           </div>
                         </div>
 
-                        {/* Episode info container only */}
+                        {/* Episode watched badge */}
+                        {isEpisodeWatched(selectedDrama.id, episode.id) && (
+                          <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold select-none shrink-0">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500/10" />
+                            <span>Ditonton</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

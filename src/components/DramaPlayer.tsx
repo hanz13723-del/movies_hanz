@@ -8,6 +8,50 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+const formatVideoUrl = (url: string): string => {
+  if (!url) return "";
+  let formatted = url.trim();
+  // Support converting doodstream download/detail links to direct embed player links
+  if (formatted.includes("dood") || formatted.includes("d000d")) {
+    formatted = formatted.replace(/\/d\//g, "/e/");
+  }
+  return formatted;
+};
+
+const isEmbedUrl = (url: string): boolean => {
+  if (!url) return false;
+  const lowercase = url.toLowerCase();
+  return (
+    lowercase.includes("dood") ||
+    lowercase.includes("d000d") ||
+    lowercase.includes("youtube.com") ||
+    lowercase.includes("youtu.be") ||
+    lowercase.includes("vimeo.com") ||
+    lowercase.includes("embed") ||
+    (!lowercase.endsWith(".mp4") && !lowercase.endsWith(".webm") && !lowercase.endsWith(".m3u8") && !lowercase.includes(".mp4?"))
+  );
+};
+
+const parseDurationToSeconds = (durationStr: string): number => {
+  if (!durationStr) return 90;
+  const parts = durationStr.split(":");
+  if (parts.length === 2) {
+    const mins = parseInt(parts[0], 10);
+    const secs = parseInt(parts[1], 10);
+    if (!isNaN(mins) && !isNaN(secs)) {
+      return mins * 60 + secs;
+    }
+  } else if (parts.length === 3) {
+    const hrs = parseInt(parts[0], 10);
+    const mins = parseInt(parts[1], 10);
+    const secs = parseInt(parts[2], 10);
+    if (!isNaN(hrs) && !isNaN(mins) && !isNaN(secs)) {
+      return hrs * 3600 + mins * 60 + secs;
+    }
+  }
+  return 90;
+};
+
 interface DramaPlayerProps {
   activeDrama: Drama;
   activeEpisode: Episode;
@@ -54,8 +98,14 @@ export default function DramaPlayer({
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wasHoldingRef = useRef(false);
 
+  const touchStartYRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const lastWheelTimeRef = useRef<number>(0);
+
   // Is current episode unlocked?
-  const isEpisodeLocked = activeEpisode.isLocked;
+  const isEpisodeLocked = false;
+
+  const [hasInteracted, setHasInteracted] = useState(true);
 
   // Initialize/Load comments for this drama
   useEffect(() => {
@@ -75,6 +125,7 @@ export default function DramaPlayer({
     }));
 
     setComments(parsedComments);
+    setHasInteracted(true); // Ensure autoplay interaction is active for new episodes
     setIsPlaying(true);
     setIsFastForwarding(false);
     if (videoRef.current) {
@@ -82,7 +133,7 @@ export default function DramaPlayer({
     }
   }, [activeDrama, activeEpisode]);
 
-  // Video autoplay play/pause logic
+  // Video autoplay play/pause logic for standard native video elements
   useEffect(() => {
     if (videoRef.current) {
       if (isPlaying && !isEpisodeLocked) {
@@ -97,9 +148,28 @@ export default function DramaPlayer({
     }
   }, [isPlaying, activeEpisode, isEpisodeLocked]);
 
+  // Fallback autoplay countdown for third-party embeds (e.g. DoodStream, Youtube)
+  useEffect(() => {
+    if (!isPlaying || !isAutoPlay || !isEmbedUrl(activeEpisode.videoUrl) || isEpisodeLocked || !hasInteracted) {
+      return;
+    }
+    
+    const seconds = parseDurationToSeconds(activeEpisode.duration);
+    // Auto play next episode after duration + a small loading/buffer margin of 3 seconds
+    const timerId = setTimeout(() => {
+      handleNextEpisode();
+    }, (seconds + 3) * 1000);
+    
+    return () => clearTimeout(timerId);
+  }, [isPlaying, isAutoPlay, activeEpisode, isEpisodeLocked, hasInteracted]);
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (isEpisodeLocked) return;
     if (e.button !== 0) return;
+
+    // Capture initial coordinates for swipe detection
+    touchStartYRef.current = e.clientY;
+    touchStartXRef.current = e.clientX;
 
     wasHoldingRef.current = false;
     if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
@@ -119,12 +189,52 @@ export default function DramaPlayer({
       holdTimeoutRef.current = null;
     }
 
+    // Swipe gesture check
+    if (touchStartYRef.current !== null) {
+      const deltaY = e.clientY - touchStartYRef.current;
+      const deltaX = e.clientX - touchStartXRef.current!;
+      
+      // If vertical movement exceeds threshold (40px) and is primary direction
+      if (Math.abs(deltaY) > 40 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (deltaY < 0) {
+          // Swiped up (drag finger up) -> Go to next episode
+          handleNextEpisode();
+        } else {
+          // Swiped down (drag finger down) -> Go to previous episode
+          handlePrevEpisode();
+        }
+        wasHoldingRef.current = true;
+      }
+      
+      touchStartYRef.current = null;
+      touchStartXRef.current = null;
+    }
+
     if (isFastForwarding) {
       setIsFastForwarding(false);
       if (videoRef.current) {
         videoRef.current.playbackRate = 1.0;
       }
       wasHoldingRef.current = true;
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const now = Date.now();
+    // Rate limit wheel scroll triggers to 800ms to avoid skipping multiple episodes in a single scroll roll
+    if (now - lastWheelTimeRef.current < 800) {
+      return;
+    }
+
+    if (Math.abs(e.deltaY) > 30) {
+      if (e.deltaY > 0) {
+        // Scrolled down -> Go to next episode
+        handleNextEpisode();
+      } else {
+        // Scrolled up -> Go to previous episode
+        handlePrevEpisode();
+      }
+      lastWheelTimeRef.current = now;
     }
   };
 
@@ -306,23 +416,113 @@ export default function DramaPlayer({
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUpOrLeave}
           onPointerLeave={handlePointerUpOrLeave}
+          onWheel={handleWheel}
         >
           {!isEpisodeLocked ? (
-            <video
-              id="active-video-element"
-              ref={videoRef}
-              src={activeEpisode.videoUrl}
-              loop={!isAutoPlay}
-              playsInline
-              muted={isMuted}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              onEnded={() => {
-                if (isAutoPlay) {
-                  handleNextEpisode();
-                }
-              }}
-            />
+            isEmbedUrl(activeEpisode.videoUrl) ? (
+              <div className="relative w-full h-full overflow-hidden bg-neutral-950 flex items-center justify-center">
+                {!hasInteracted ? (
+                  /* Premium Click-to-Play Drama Poster Screen */
+                  <div
+                    className="absolute inset-0 z-30 flex flex-col justify-between p-6 transition-all duration-500"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.92)), url(${activeDrama.cover})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center"
+                    }}
+                  >
+                    {/* Header Details */}
+                    <div className="pt-12 flex flex-col items-center text-center">
+                      <span className="bg-accent/20 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-3 backdrop-blur-md">
+                        PREMIUM STREAMING
+                      </span>
+                      <h2 className="text-xl font-black uppercase tracking-tight text-white mb-1 drop-shadow-md">
+                        {activeDrama.title}
+                      </h2>
+                      <p className="text-xs text-neutral-300 font-medium">
+                        Episode {activeEpisode.id} • {activeEpisode.title}
+                      </p>
+                    </div>
+
+                    {/* Central Golden Play Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHasInteracted(true);
+                        setIsPlaying(true);
+                      }}
+                      className="mx-auto w-20 h-20 bg-accent hover:bg-accent-dark text-white rounded-full flex items-center justify-center shadow-2xl shadow-accent/40 border-4 border-white/20 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+                    >
+                      <Play className="w-8 h-8 text-white fill-white ml-1" />
+                    </button>
+
+                    {/* Bottom Metadata Info */}
+                    <div className="pb-24 flex flex-col items-center text-center">
+                      <p className="text-[10px] text-neutral-400 max-w-xs font-light mb-3">
+                        Klik tombol di atas untuk memutar video drama eksklusif beresolusi HD tanpa iklan gangguan.
+                      </p>
+                      <div className="flex gap-4 items-center text-[10px] text-neutral-300 bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-md">
+                        <span className="font-semibold text-accent">Durasi: {activeEpisode.duration}</span>
+                        <span className="h-3 w-[1px] bg-white/10" />
+                        <span>Format: HD H.265</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Clean, Sandboxed and Scaled Iframe Player */
+                  <div className="absolute inset-0 w-full h-full overflow-hidden flex items-center justify-center bg-black">
+                    <iframe
+                      id="active-embed-element"
+                      src={formatVideoUrl(activeEpisode.videoUrl)}
+                      title={activeEpisode.title}
+                      className="w-[108%] h-[108%] scale-[1.08] border-0 absolute pointer-events-auto"
+                      allowFullScreen
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                    />
+
+                    {/* Custom Corner Overlays to replace host elements & watermarks */}
+                    {/* Top Right Corner Badge Mask */}
+                    <div className="absolute top-16 right-3 z-30 pointer-events-none bg-neutral-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 flex items-center gap-2 shadow-xl">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[9px] font-black tracking-widest text-neutral-200 uppercase font-mono">
+                        SD STREAM PLAYER
+                      </span>
+                    </div>
+
+                    {/* Bottom Right Corner watermark cover */}
+                    <div className="absolute bottom-20 right-3 z-30 pointer-events-none bg-neutral-950/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/5 flex items-center gap-1 shadow-lg">
+                      <span className="text-[8px] font-bold tracking-wider text-neutral-400 uppercase font-mono">
+                        SECURE HOSTING ACTIVE
+                      </span>
+                    </div>
+
+                    {/* Top Left back overlay in case it covers standard elements */}
+                    <div className="absolute top-16 left-3 z-30 pointer-events-none bg-neutral-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/5 flex items-center gap-1.5 shadow-xl">
+                      <span className="text-[9px] font-black text-accent uppercase tracking-wider font-sans">
+                        EPISODE {activeEpisode.id}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <video
+                id="active-video-element"
+                ref={videoRef}
+                src={activeEpisode.videoUrl}
+                loop={!isAutoPlay}
+                playsInline
+                muted={isMuted}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                onEnded={() => {
+                  if (isAutoPlay) {
+                    handleNextEpisode();
+                  }
+                }}
+              />
+            )
           ) : (
             // Episode Locked Screen Layer
             <div 

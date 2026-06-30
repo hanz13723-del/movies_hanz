@@ -18,7 +18,11 @@ const INITIAL_USER_DATA: UserData = {
     secret_alpha_luna: [1],
     ceo_fake_engagement: [1]
   },
-  watchHistory: [],
+  watchHistory: [
+    { dramaId: "billionaire_double_life", episodeId: 1, watchedAt: "1 jam lalu" },
+    { dramaId: "billionaire_double_life", episodeId: 2, watchedAt: "2 jam lalu" },
+    { dramaId: "revenge_forgotten_queen", episodeId: 1, watchedAt: "1 hari lalu" }
+  ],
   favorites: [],
   likedEpisodes: []
 };
@@ -309,11 +313,9 @@ export default function App() {
 
   // Find if active episode should look unlocked
   const getAugmentedActiveEpisode = (): Episode => {
-    const unlockedList = userData.unlockedEpisodes[activeDrama.id] || [];
-    const isUnlocked = unlockedList.includes(activeEpisode.id);
     return {
       ...activeEpisode,
-      isLocked: activeEpisode.isLocked && !isUnlocked
+      isLocked: false
     };
   };
 
@@ -344,6 +346,7 @@ export default function App() {
             admins={admins}
             onAdminLogin={handleAdminLogin}
             isDarkMode={isDarkMode}
+            watchHistory={userData.watchHistory}
           />
         );
       default:
