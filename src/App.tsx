@@ -7,8 +7,8 @@ import DramaPlayer from "./components/DramaPlayer";
 import AdminPanel from "./components/AdminPanel";
 import { AnimatePresence, motion } from "motion/react";
 
-const LOCAL_STORAGE_KEY = "melolo_drama_user_data";
-const CHECKIN_STORAGE_KEY = "melolo_drama_last_checkin";
+const LOCAL_STORAGE_KEY = "shortdrama_drama_user_data";
+const CHECKIN_STORAGE_KEY = "shortdrama_drama_last_checkin";
 
 const INITIAL_USER_DATA: UserData = {
   coins: 150, // Decent starting coins to unlock ~5 locked episodes!
@@ -34,8 +34,8 @@ const INITIAL_ADMINS: AdminAccount[] = [
   },
   {
     id: "admin_2",
-    username: "melolo_ceo",
-    email: "ceo@melolo.com",
+    username: "shortdrama_ceo",
+    email: "ceo@shortdrama.com",
     password: "ceo",
     role: "Manager",
     createdAt: "30/06/2026"
@@ -49,12 +49,12 @@ export default function App() {
 
   // Dynamic content list (managed by admin panel)
   const [dramas, setDramas] = useState<Drama[]>(() => {
-    const saved = localStorage.getItem("melolo_dramas");
+    const saved = localStorage.getItem("shortdrama_dramas");
     return saved ? JSON.parse(saved) : DRAMAS;
   });
 
   const [admins, setAdmins] = useState<AdminAccount[]>(() => {
-    const saved = localStorage.getItem("melolo_admins");
+    const saved = localStorage.getItem("shortdrama_admins");
     return saved ? JSON.parse(saved) : INITIAL_ADMINS;
   });
 
@@ -63,13 +63,13 @@ export default function App() {
 
   // Drama player active states
   const [activeDrama, setActiveDrama] = useState<Drama>(() => {
-    const saved = localStorage.getItem("melolo_dramas");
+    const saved = localStorage.getItem("shortdrama_dramas");
     const list = saved ? JSON.parse(saved) : DRAMAS;
     return list[0] || DRAMAS[0];
   });
   
   const [activeEpisode, setActiveEpisode] = useState<Episode>(() => {
-    const saved = localStorage.getItem("melolo_dramas");
+    const saved = localStorage.getItem("shortdrama_dramas");
     const list = saved ? JSON.parse(saved) : DRAMAS;
     const firstDrama = list[0] || DRAMAS[0];
     return firstDrama?.episodes[0] || DRAMAS[0].episodes[0];
@@ -78,7 +78,7 @@ export default function App() {
   // Save dramas helper
   const saveDramas = (newDramas: Drama[]) => {
     setDramas(newDramas);
-    localStorage.setItem("melolo_dramas", JSON.stringify(newDramas));
+    localStorage.setItem("shortdrama_dramas", JSON.stringify(newDramas));
 
     // Also update active drama references if they are deleted or modified
     const currentActiveDramaInNew = newDramas.find(d => d.id === activeDrama.id);
@@ -99,7 +99,7 @@ export default function App() {
   // Save admins helper
   const saveAdmins = (newAdmins: AdminAccount[]) => {
     setAdmins(newAdmins);
-    localStorage.setItem("melolo_admins", JSON.stringify(newAdmins));
+    localStorage.setItem("shortdrama_admins", JSON.stringify(newAdmins));
   };
 
   // Admin login trigger

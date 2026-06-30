@@ -62,7 +62,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-accent via-accent-light to-accent-dark font-sans">
-                  MELOLO
+                  SHORT DRAMA
                 </span>
                 <span className="text-xs bg-accent/10 text-accent px-2.5 py-0.5 rounded-full font-semibold border border-accent/20">
                   LITE
@@ -89,7 +89,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
               <input
                 id="search-input"
                 type="text"
-                placeholder="Cari drama terpanas di Melolo..."
+                placeholder="Cari drama terpanas di Short Drama..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm text-neutral-100 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all placeholder:text-neutral-500"
@@ -403,7 +403,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                   <Shield className="w-6 h-6 stroke-[2.2]" />
                 </div>
                 <h3 className="text-sm font-black uppercase text-neutral-200 tracking-wider font-sans">
-                  Portal Administrator Melolo
+                  Portal Administrator Short Drama
                 </h3>
                 <p className="text-[10px] text-neutral-500 font-light leading-relaxed">
                   Gunakan kredensial admin Anda untuk mengelola katalog drama, episode, dan akun.

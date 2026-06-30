@@ -437,7 +437,7 @@ export default function AdminPanel({
             </div>
             <div>
               <h2 className="text-sm font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent-light uppercase">
-                Melolo Admin
+                Short Drama Admin
               </h2>
               <span className="text-[10px] text-neutral-400 bg-white/5 px-2 py-0.5 rounded font-mono">
                 Control Suite v2.0
@@ -523,7 +523,7 @@ export default function AdminPanel({
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-black text-neutral-300 hover:text-white transition-all border border-white/5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Ke Web Melolo</span>
+            <span>Ke Web Short Drama</span>
           </button>
           <button
             onClick={onLogout}
@@ -549,7 +549,7 @@ export default function AdminPanel({
               {activeSubTab === "settings" && "Konfigurasi Sistem Utama"}
             </h1>
             <p className="text-xs text-neutral-400 mt-1">
-              Mengontrol jalannya platform teater drama digital Melolo Lite secara real-time.
+              Mengontrol jalannya platform teater drama digital Short Drama Lite secara real-time.
             </p>
           </div>
           
@@ -1377,7 +1377,7 @@ export default function AdminPanel({
                           value={adminForm.email}
                           onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
                           className="w-full bg-neutral-950 border border-white/10 rounded-xl py-2.5 px-3.5 text-xs text-neutral-200 focus:outline-none focus:border-accent"
-                          placeholder="editor@melolo.com"
+                          placeholder="editor@shortdrama.com"
                           required
                         />
                       </div>
@@ -1437,7 +1437,7 @@ export default function AdminPanel({
             <div className="glass rounded-3xl overflow-hidden border border-white/5">
               <div className="p-5 border-b border-white/5 bg-white/2">
                 <h3 className="text-xs font-black uppercase text-neutral-300 tracking-wider">
-                  Daftar Administrator Platform Melolo ({admins.length} Pengguna)
+                  Daftar Administrator Platform Short Drama ({admins.length} Pengguna)
                 </h3>
               </div>
 
@@ -1528,11 +1528,11 @@ export default function AdminPanel({
             <div className="glass p-6 rounded-3xl space-y-6">
               <h3 className="text-sm font-black uppercase tracking-wider text-neutral-200 flex items-center gap-2">
                 <Database className="w-5 h-5 text-accent" />
-                Operasi Basis Data Melolo (Simulasi)
+                Operasi Basis Data Short Drama (Simulasi)
               </h3>
               
               <p className="text-xs text-neutral-400 leading-relaxed font-light">
-                Karena aplikasi ini menggunakan penyimpanan lokal durabilitas tinggi (<span className="text-white font-semibold">localStorage</span>), seluruh perubahan yang Anda buat di admin panel akan tersimpan secara instan di browser ini. Di bawah ini Anda dapat melakukan reset ulang ke data pabrik default Melolo.
+                Karena aplikasi ini menggunakan penyimpanan lokal durabilitas tinggi (<span className="text-white font-semibold">localStorage</span>), seluruh perubahan yang Anda buat di admin panel akan tersimpan secara instan di browser ini. Di bawah ini Anda dapat melakukan reset ulang ke data pabrik default Short Drama.
               </p>
 
               <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3">
@@ -1546,7 +1546,7 @@ export default function AdminPanel({
                   <button
                     onClick={() => {
                       if (confirm("Apakah Anda yakin ingin melakukan factory reset basis data? Seluruh drama dan episode baru buatan Anda akan hilang.")) {
-                        localStorage.removeItem("melolo_dramas");
+                        localStorage.removeItem("shortdrama_dramas");
                         alert("Berhasil melakukan reset data! Halaman akan dimuat ulang...");
                         window.location.reload();
                       }
@@ -1570,7 +1570,7 @@ export default function AdminPanel({
                   }}
                   className="bg-accent hover:bg-accent-dark text-white text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1"
                 >
-                  <Coins className="w-3.5 h-3.5" /> Bagikan 10,000 Koin Melolo
+                  <Coins className="w-3.5 h-3.5" /> Bagikan 10,000 Koin Short Drama
                 </button>
               </div>
 

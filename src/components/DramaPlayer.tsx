@@ -47,7 +47,7 @@ export default function DramaPlayer({
   useEffect(() => {
     const textList = MOCK_COMMENTS[activeDrama.id] || [
       "Wah seru banget episodenya!",
-      "Gak bisa brenti nonton melolo drama emang paling top!",
+      "Gak bisa brenti nonton short drama emang paling top!",
       "Aktingnya keren dan ceritanya antimainstream!"
     ];
 
@@ -165,7 +165,7 @@ export default function DramaPlayer({
         <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-center glass p-2.5 rounded-2xl">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black text-accent uppercase font-sans tracking-widest">
-              MELOLO THEATER
+              SHORT DRAMA THEATER
             </span>
           </div>
           <div className="flex items-center gap-3">
