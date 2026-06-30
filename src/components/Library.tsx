@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Drama, Episode, AdminAccount } from "../types";
 import { Search, Flame, Star, Play, Eye, ChevronLeft, Lock, Unlock, Film, Shield, Mail, Key, UserCheck, AlertCircle, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -17,6 +17,19 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedDrama, setSelectedDrama] = useState<Drama | null>(null);
+  
+  // Skeleton loading states
+  const [isGridLoading, setIsGridLoading] = useState(true);
+  const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
+
+  // Simulated content refresh timer on query or category change
+  useEffect(() => {
+    setIsGridLoading(true);
+    const timer = setTimeout(() => {
+      setIsGridLoading(false);
+    }, 450); // Premium brief transition delay
+    return () => clearTimeout(timer);
+  }, [selectedCategory, searchQuery]);
 
   // States for Admin Login Modal
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -116,45 +129,55 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
 
             {/* Hero Banner (Only shown when filter is All and search is empty) */}
             {selectedCategory === "All" && searchQuery === "" && heroDrama && (
-              <motion.div
-                id="hero-banner"
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="relative h-60 rounded-3xl overflow-hidden mb-6 group cursor-pointer border border-white/10 shadow-2xl"
-                onClick={() => handleOpenDetails(heroDrama)}
-              >
-                <img
-                  src={heroDrama.cover}
-                  alt={heroDrama.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
-                
-                {/* Hero Badges */}
-                <span className="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-                  🔥 Trending #1
-                </span>
+              isGridLoading ? (
+                <div className="relative h-60 rounded-3xl overflow-hidden mb-6 border border-white/5 bg-neutral-900/40 shimmer animate-shimmer" />
+              ) : (
+                <motion.div
+                  id="hero-banner"
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="relative h-60 rounded-3xl overflow-hidden mb-6 group cursor-pointer border border-white/10 shadow-2xl"
+                  onClick={() => handleOpenDetails(heroDrama)}
+                >
+                  <img
+                    src={heroDrama.cover}
+                    alt={heroDrama.title}
+                    onLoad={() => setLoadedImages(prev => ({ ...prev, [`hero-${heroDrama.id}`]: true }))}
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
+                      loadedImages[`hero-${heroDrama.id}`] ? "opacity-100" : "opacity-0"
+                    }`}
+                    referrerPolicy="no-referrer"
+                  />
+                  {!loadedImages[`hero-${heroDrama.id}`] && (
+                    <div className="absolute inset-0 shimmer animate-shimmer bg-neutral-900/40" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-transparent" />
+                  
+                  {/* Hero Badges */}
+                  <span className="absolute top-3 left-3 bg-accent text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+                    🔥 Trending #1
+                  </span>
 
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
-                      {heroDrama.category}
-                    </span>
-                    <span className="text-neutral-400 text-xs">•</span>
-                    <span className="flex items-center gap-0.5 text-xs text-accent font-bold">
-                      <Star className="w-3 h-3 fill-accent text-accent" />
-                      {heroDrama.rating}
-                    </span>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] uppercase font-bold text-accent tracking-wider">
+                        {heroDrama.category}
+                      </span>
+                      <span className="text-neutral-400 text-xs">•</span>
+                      <span className="flex items-center gap-0.5 text-xs text-accent font-bold">
+                        <Star className="w-3 h-3 fill-accent text-accent" />
+                        {heroDrama.rating}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-black tracking-tight leading-tight mb-1 text-white uppercase font-sans">
+                      {heroDrama.title}
+                    </h3>
+                    <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed font-light">
+                      {heroDrama.description}
+                    </p>
                   </div>
-                  <h3 className="text-lg font-black tracking-tight leading-tight mb-1 text-white uppercase font-sans">
-                    {heroDrama.title}
-                  </h3>
-                  <p className="text-xs text-neutral-300 line-clamp-2 leading-relaxed font-light">
-                    {heroDrama.description}
-                  </p>
-                </div>
-              </motion.div>
+                </motion.div>
+              )
             )}
 
             {/* Drama List Heading */}
@@ -164,59 +187,85 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
             </h4>
 
             {/* Grid Catalog */}
-            <div className="grid grid-cols-2 gap-4" id="drama-catalog-grid">
-              {filteredDramas.map((drama) => (
-                <motion.div
-                  id={`drama-card-${drama.id}`}
-                  key={drama.id}
-                  onClick={() => handleOpenDetails(drama)}
-                  whileTap={{ scale: 0.98 }}
-                  className="glass rounded-2xl overflow-hidden group cursor-pointer flex flex-col hover:border-accent/40 transition-colors"
-                >
-                  <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900/40">
-                    <img
-                      src={drama.cover}
-                      alt={drama.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-transparent" />
-                    
-                    {/* View Count Overlay */}
-                    <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] text-neutral-200 font-semibold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-xs">
-                      <Eye className="w-3 h-3 text-neutral-400" />
-                      {drama.views} Views
-                    </div>
-
-                    {/* Category Label */}
-                    <span className="absolute top-2 left-2 text-[9px] font-black bg-neutral-950/80 text-accent border border-accent/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {drama.category.split("/")[0]}
-                    </span>
-                  </div>
-
-                  <div className="p-3 flex-1 flex flex-col justify-between">
-                    <h5 className="font-bold text-sm text-neutral-100 line-clamp-1 group-hover:text-accent transition-colors uppercase tracking-tight">
-                      {drama.title}
-                    </h5>
-                    <div className="flex justify-between items-center mt-1.5 text-[11px] text-neutral-400">
-                      <span className="font-semibold text-neutral-300">
-                        {drama.episodesCount} Episodes
-                      </span>
-                      <span className="flex items-center gap-0.5 text-accent font-bold">
-                        <Star className="w-2.5 h-2.5 fill-accent text-accent" />
-                        {drama.rating}
-                      </span>
+            {isGridLoading ? (
+              <div className="grid grid-cols-2 gap-4" id="drama-catalog-skeletons">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={`skeleton-${i}`}
+                    className="glass rounded-2xl overflow-hidden flex flex-col border border-white/5"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900/40 shimmer animate-shimmer" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-4 bg-white/10 rounded-md w-3/4 shimmer animate-shimmer" />
+                      <div className="flex justify-between items-center pt-1">
+                        <div className="h-3 bg-white/10 rounded-md w-1/3 shimmer animate-shimmer" />
+                        <div className="h-3 bg-white/10 rounded-md w-1/4 shimmer animate-shimmer" />
+                      </div>
                     </div>
                   </div>
-                </motion.div>
-              ))}
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4" id="drama-catalog-grid">
+                {filteredDramas.map((drama) => (
+                  <motion.div
+                    id={`drama-card-${drama.id}`}
+                    key={drama.id}
+                    onClick={() => handleOpenDetails(drama)}
+                    whileTap={{ scale: 0.98 }}
+                    className="glass rounded-2xl overflow-hidden group cursor-pointer flex flex-col hover:border-accent/40 transition-colors"
+                  >
+                    <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900/40">
+                      <img
+                        src={drama.cover}
+                        alt={drama.title}
+                        onLoad={() => setLoadedImages(prev => ({ ...prev, [drama.id]: true }))}
+                        className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${
+                          loadedImages[drama.id] ? "opacity-100" : "opacity-0"
+                        }`}
+                        referrerPolicy="no-referrer"
+                      />
+                      {!loadedImages[drama.id] && (
+                        <div className="absolute inset-0 shimmer animate-shimmer bg-neutral-900/40" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-transparent" />
+                      
+                      {/* View Count Overlay */}
+                      <div className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] text-neutral-200 font-semibold bg-black/60 px-2 py-0.5 rounded-md backdrop-blur-xs">
+                        <Eye className="w-3 h-3 text-neutral-400" />
+                        {drama.views} Views
+                      </div>
 
-              {filteredDramas.length === 0 && (
-                <div id="no-drama-found" className="col-span-2 text-center py-12 text-neutral-500">
-                  <p className="text-sm">Tidak ada drama yang cocok dengan pencarian.</p>
-                </div>
-              )}
-            </div>
+                      {/* Category Label */}
+                      <span className="absolute top-2 left-2 text-[9px] font-black bg-neutral-950/80 text-accent border border-accent/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        {drama.category.split("/")[0]}
+                      </span>
+                    </div>
+
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                      <h5 className="font-bold text-sm text-neutral-100 line-clamp-1 group-hover:text-accent transition-colors uppercase tracking-tight">
+                        {drama.title}
+                      </h5>
+                      <div className="flex justify-between items-center mt-1.5 text-[11px] text-neutral-400">
+                        <span className="font-semibold text-neutral-300">
+                          {drama.episodesCount} Episodes
+                        </span>
+                        <span className="flex items-center gap-0.5 text-accent font-bold">
+                          <Star className="w-2.5 h-2.5 fill-accent text-accent" />
+                          {drama.rating}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {filteredDramas.length === 0 && (
+                  <div id="no-drama-found" className="col-span-2 text-center py-12 text-neutral-500">
+                    <p className="text-sm">Tidak ada drama yang cocok dengan pencarian.</p>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         ) : (
           /* Drama Detail Screen */
@@ -472,37 +521,6 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                 </button>
               </form>
 
-              {/* Quick Simulator triggers inside Modal */}
-              <div className="border-t border-white/5 pt-3.5 space-y-2">
-                <span className="block text-[9px] font-black uppercase text-neutral-400 tracking-wider">
-                  Akses Masuk Cepat (Quick Simulator):
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {admins.map((adm) => (
-                    <button
-                      id={`modal-quick-login-${adm.id}`}
-                      key={adm.id}
-                      type="button"
-                      onClick={() => {
-                        const pwd = adm.password || (adm.id === "admin_1" ? "admin" : "ceo");
-                        setUsernameInput(adm.username);
-                        setPasswordInput(pwd);
-                        const success = onAdminLogin(adm.username, pwd);
-                        if (success) {
-                          setLoginError("");
-                          setShowAdminModal(false);
-                        } else {
-                          setLoginError("Akses Cepat Gagal.");
-                        }
-                      }}
-                      className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[10px] text-left transition-all active:scale-95 cursor-pointer group hover:border-accent/30"
-                    >
-                      <span className="block font-bold text-neutral-200 group-hover:text-accent truncate">{adm.username}</span>
-                      <span className="block text-[8px] text-neutral-500">{adm.role}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}

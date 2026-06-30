@@ -37,8 +37,11 @@ export default function DramaPlayer({
   const [comments, setComments] = useState<Comment[]>([]);
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [heartCoords, setHeartCoords] = useState({ x: 0, y: 0 });
+  const [isFastForwarding, setIsFastForwarding] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const wasHoldingRef = useRef(false);
 
   // Is current episode unlocked?
   const isEpisodeLocked = false;
@@ -62,6 +65,10 @@ export default function DramaPlayer({
 
     setComments(parsedComments);
     setIsPlaying(true);
+    setIsFastForwarding(false);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 1.0;
+    }
   }, [activeDrama, activeEpisode]);
 
   // Video autoplay play/pause logic
@@ -79,8 +86,45 @@ export default function DramaPlayer({
     }
   }, [isPlaying, activeEpisode, isEpisodeLocked]);
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isEpisodeLocked) return;
+    if (e.button !== 0) return;
+
+    wasHoldingRef.current = false;
+    if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+
+    holdTimeoutRef.current = setTimeout(() => {
+      setIsFastForwarding(true);
+      wasHoldingRef.current = true;
+      if (videoRef.current) {
+        videoRef.current.playbackRate = 2.0;
+      }
+    }, 250);
+  };
+
+  const handlePointerUpOrLeave = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+
+    if (isFastForwarding) {
+      setIsFastForwarding(false);
+      if (videoRef.current) {
+        videoRef.current.playbackRate = 1.0;
+      }
+      wasHoldingRef.current = true;
+    }
+  };
+
   const handleVideoTap = () => {
     if (isEpisodeLocked) return;
+    
+    if (wasHoldingRef.current) {
+      wasHoldingRef.current = false;
+      return;
+    }
+    
     setIsPlaying(!isPlaying);
   };
 
@@ -207,6 +251,9 @@ export default function DramaPlayer({
           className="relative w-full h-full flex items-center justify-center cursor-pointer select-none"
           onClick={handleVideoTap}
           onDoubleClick={handleDoubleTap}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUpOrLeave}
+          onPointerLeave={handlePointerUpOrLeave}
         >
           {!isEpisodeLocked ? (
             <video
@@ -299,6 +346,26 @@ export default function DramaPlayer({
                 className="absolute bg-black/60 p-5 rounded-full z-10 pointer-events-none border border-neutral-800"
               >
                 <Play className="w-8 h-8 text-accent fill-accent" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Fast Forward 2x Speed HUD Overlay */}
+          <AnimatePresence>
+            {isFastForwarding && (
+              <motion.div
+                initial={{ opacity: 0, y: -15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                className="absolute top-20 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-md border border-accent/40 text-white px-4 py-2 rounded-full z-40 pointer-events-none flex items-center gap-2 shadow-lg"
+              >
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                </span>
+                <span className="text-[11px] font-black tracking-widest uppercase text-accent font-sans">
+                  2X PEMUTARAN CEPAT
+                </span>
               </motion.div>
             )}
           </AnimatePresence>

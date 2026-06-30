@@ -9,6 +9,22 @@
   --color-accent: #FF3B5C;
   --color-accent-dark: #D62B4A;
   --color-accent-light: #FF6680;
+
+  --animate-shimmer: shimmer 2s infinite linear;
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
 }
 
 /* Frosted glass utility helper */
