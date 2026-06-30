@@ -163,7 +163,14 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                   initial={{ scale: 0.95, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="relative h-60 rounded-3xl overflow-hidden mb-6 group cursor-pointer border border-white/10 shadow-2xl"
-                  onClick={() => handleOpenDetails(heroDrama)}
+                  onClick={() => {
+                    const firstEpisode = heroDrama.episodes?.[0];
+                    if (firstEpisode) {
+                      onPlayEpisode(heroDrama, firstEpisode);
+                    } else {
+                      handleOpenDetails(heroDrama);
+                    }
+                  }}
                 >
                   <img
                     src={heroDrama.cover}
