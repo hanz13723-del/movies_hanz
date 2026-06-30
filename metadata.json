@@ -1,0 +1,6 @@
+{
+  "name": "Melolo Short Drama",
+  "description": "Premium short-form drama platform with trending vertical miniseries, interactive video player, coin rewards, and AI character roleplay.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@500;700;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-accent: #FF3B5C;
+  --color-accent-dark: #D62B4A;
+  --color-accent-light: #FF6680;
+}
+
+/* Frosted glass utility helper */
+.glass {
+  background: rgba(255, 255, 255, 0.03) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Custom scrollbar configurations for ultra-sleek horizontal trays */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Elegant safe area offsets for mobile screen frames */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Rich focus state transitions and pulse filters */
+input:focus, textarea:focus {
+  outline: none;
+}
