@@ -46,6 +46,21 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"theater" | "library">("library");
   const [userData, setUserData] = useState<UserData>(INITIAL_USER_DATA);
   const [lastCheckInDate, setLastCheckInDate] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem("shortdrama_theme");
+    return saved !== null ? saved === "dark" : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("shortdrama_theme", isDarkMode ? "dark" : "light");
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDarkMode]);
 
   // Dynamic content list (managed by admin panel)
   const [dramas, setDramas] = useState<Drama[]>(() => {
@@ -118,7 +133,7 @@ export default function App() {
     return false;
   };
 
-  // Load user data from localStorage on mount
+  // Load user data from localStorage and check for shared episode on mount
   useEffect(() => {
     const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedData) {
@@ -132,6 +147,31 @@ export default function App() {
     const savedCheckIn = localStorage.getItem(CHECKIN_STORAGE_KEY);
     if (savedCheckIn) {
       setLastCheckInDate(savedCheckIn);
+    }
+
+    // Deep link query parameters parsing
+    const params = new URLSearchParams(window.location.search);
+    const sharedDramaId = params.get("drama");
+    const sharedEpisodeId = params.get("episode");
+
+    if (sharedDramaId) {
+      const foundDrama = dramas.find(d => d.id === sharedDramaId);
+      if (foundDrama) {
+        let foundEpisode = foundDrama.episodes[0];
+        if (sharedEpisodeId) {
+          const epId = parseInt(sharedEpisodeId, 10);
+          if (!isNaN(epId)) {
+            const matchEp = foundDrama.episodes.find(e => e.id === epId);
+            if (matchEp) {
+              foundEpisode = matchEp;
+            }
+          }
+        }
+        // Use a tiny timeout to ensure other states are fully mounted
+        setTimeout(() => {
+          handlePlayEpisode(foundDrama, foundEpisode);
+        }, 150);
+      }
     }
   }, []);
 
@@ -290,6 +330,7 @@ export default function App() {
             onAddCoins={handleAddCoins}
             likedEpisodes={userData.likedEpisodes}
             toggleLikeEpisode={toggleLikeEpisode}
+            isDarkMode={isDarkMode}
           />
         );
       case "library":
@@ -302,6 +343,7 @@ export default function App() {
             toggleFavorite={toggleFavorite}
             admins={admins}
             onAdminLogin={handleAdminLogin}
+            isDarkMode={isDarkMode}
           />
         );
       default:
@@ -326,10 +368,10 @@ export default function App() {
   }
 
   return (
-    <div id="app-root-shell" className="min-h-screen bg-neutral-950 font-sans text-neutral-100 flex flex-col justify-between">
+    <div id="app-root-shell" className={`min-h-screen ${isDarkMode ? "bg-neutral-950 text-neutral-100" : "bg-neutral-50 text-neutral-900"} font-sans flex flex-col justify-between transition-colors duration-300`}>
       
       {/* Scrollable primary visual body wrapper with fixed desktop bounds */}
-      <main className="flex-1 w-full relative md:max-w-md md:mx-auto md:border-x md:border-neutral-900 md:shadow-2xl">
+      <main className={`flex-1 w-full relative md:max-w-md md:mx-auto md:border-x ${isDarkMode ? "md:border-neutral-900" : "md:border-neutral-200"} md:shadow-2xl transition-colors duration-300`}>
         <AnimatePresence mode="wait">
           <motion.div
             id={`screen-container-${activeTab}`}
@@ -350,6 +392,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         coins={userData.coins}
+        isDarkMode={isDarkMode}
+        toggleTheme={() => setIsDarkMode(prev => !prev)}
       />
     </div>
   );

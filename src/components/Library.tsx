@@ -11,9 +11,10 @@ interface LibraryProps {
   toggleFavorite: (dramaId: string) => void;
   admins: AdminAccount[];
   onAdminLogin: (username: string, pass: string) => boolean;
+  isDarkMode?: boolean;
 }
 
-export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favorites, toggleFavorite, admins, onAdminLogin }: LibraryProps) {
+export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favorites, toggleFavorite, admins, onAdminLogin, isDarkMode = true }: LibraryProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedDrama, setSelectedDrama] = useState<Drama | null>(null);
@@ -59,7 +60,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
   };
 
   return (
-    <div id="library-root" className="min-h-screen bg-neutral-950 text-neutral-100 pb-28">
+    <div id="library-root" className={`min-h-screen ${isDarkMode ? "bg-neutral-950 text-neutral-100" : "bg-neutral-50 text-neutral-900"} pb-28 transition-colors duration-300`}>
       <AnimatePresence mode="wait">
         {!selectedDrama ? (
           <motion.div
@@ -105,7 +106,11 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                 placeholder="Cari drama terpanas di Short Drama..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-4 text-sm text-neutral-100 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 transition-all placeholder:text-neutral-500"
+                className={`w-full border rounded-full py-2.5 pl-10 pr-4 text-sm transition-all placeholder:text-neutral-500 ${
+                  isDarkMode 
+                    ? "bg-white/5 border-white/10 text-neutral-100 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20" 
+                    : "bg-white border-neutral-200 text-neutral-900 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20 shadow-sm"
+                }`}
               />
             </div>
 
@@ -116,10 +121,12 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                   id={`category-chip-${category.replace("/", "-")}`}
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 border ${
                     selectedCategory === category
-                      ? "bg-accent text-white font-bold shadow-lg shadow-accent/25"
-                      : "glass text-neutral-400 hover:text-neutral-200"
+                      ? "bg-accent text-white font-bold border-accent shadow-lg shadow-accent/25"
+                      : isDarkMode
+                        ? "bg-white/5 border-white/10 text-neutral-400 hover:text-neutral-200"
+                        : "bg-white border-neutral-200 text-neutral-600 hover:text-neutral-900 shadow-sm"
                   }`}
                 >
                   {category}
@@ -181,7 +188,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
             )}
 
             {/* Drama List Heading */}
-            <h4 className="text-sm font-bold uppercase tracking-wider text-neutral-400 mb-3 flex items-center gap-2 font-sans">
+            <h4 className={`text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2 font-sans ${isDarkMode ? "text-neutral-400" : "text-neutral-500"}`}>
               <Film className="w-4 h-4 text-accent" />
               {selectedCategory === "All" ? "Rekomendasi Teratas" : `${selectedCategory} Series`}
             </h4>
@@ -192,7 +199,11 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={`skeleton-${i}`}
-                    className="glass rounded-2xl overflow-hidden flex flex-col border border-white/5"
+                    className={`rounded-2xl overflow-hidden flex flex-col border ${
+                      isDarkMode 
+                        ? "bg-neutral-900/40 border-white/5 shimmer animate-shimmer" 
+                        : "bg-white border-neutral-200 shadow-sm"
+                    }`}
                   >
                     <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900/40 shimmer animate-shimmer" />
                     <div className="p-3 space-y-2">
@@ -213,7 +224,11 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                     key={drama.id}
                     onClick={() => handleOpenDetails(drama)}
                     whileTap={{ scale: 0.98 }}
-                    className="glass rounded-2xl overflow-hidden group cursor-pointer flex flex-col hover:border-accent/40 transition-colors"
+                    className={`rounded-2xl overflow-hidden group cursor-pointer flex flex-col border transition-all duration-300 ${
+                      isDarkMode 
+                        ? "bg-neutral-900/40 border-white/5 hover:border-accent/40" 
+                        : "bg-white border-neutral-200 hover:border-accent/40 shadow-sm"
+                    }`}
                   >
                     <div className="relative aspect-[3/4] overflow-hidden bg-neutral-900/40">
                       <img
@@ -243,11 +258,11 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                     </div>
 
                     <div className="p-3 flex-1 flex flex-col justify-between">
-                      <h5 className="font-bold text-sm text-neutral-100 line-clamp-1 group-hover:text-accent transition-colors uppercase tracking-tight">
+                      <h5 className={`font-bold text-sm line-clamp-1 group-hover:text-accent transition-colors uppercase tracking-tight ${isDarkMode ? "text-neutral-100" : "text-neutral-800"}`}>
                         {drama.title}
                       </h5>
                       <div className="flex justify-between items-center mt-1.5 text-[11px] text-neutral-400">
-                        <span className="font-semibold text-neutral-300">
+                        <span className={`font-semibold ${isDarkMode ? "text-neutral-300" : "text-neutral-600"}`}>
                           {drama.episodesCount} Episodes
                         </span>
                         <span className="flex items-center gap-0.5 text-accent font-bold">
@@ -276,7 +291,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ type: "spring", damping: 25, stiffness: 120 }}
-            className="min-h-screen bg-neutral-950 text-neutral-100 max-w-md mx-auto relative pb-28"
+            className={`min-h-screen ${isDarkMode ? "bg-neutral-950 text-neutral-100" : "bg-neutral-50 text-neutral-900"} max-w-md mx-auto relative pb-28 transition-colors duration-300`}
           >
             {/* Header Hero Area */}
             <div className="relative h-[400px] w-full" id="detail-hero">
@@ -338,7 +353,7 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                 <h3 className="text-sm font-bold uppercase text-accent tracking-wider mb-2 font-sans">
                   Sinopsis Cerita
                 </h3>
-                <p className="text-sm text-neutral-300 leading-relaxed font-light">
+                <p className={`text-sm leading-relaxed font-light ${isDarkMode ? "text-neutral-300" : "text-neutral-700"}`}>
                   {selectedDrama.description}
                 </p>
               </div>
@@ -350,17 +365,21 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                 </h3>
                 <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
                   {selectedDrama.characters.map((char) => (
-                    <div key={char.id} className="flex items-center gap-3 glass p-2.5 rounded-2xl min-w-[200px]">
+                    <div key={char.id} className={`flex items-center gap-3 p-2.5 rounded-2xl min-w-[200px] border ${
+                      isDarkMode 
+                        ? "bg-white/5 border-white/5" 
+                        : "bg-white border-neutral-200 shadow-sm"
+                    }`}>
                       <img
                         src={char.avatar}
                         alt={char.name}
-                        className="w-11 h-11 rounded-xl object-cover border border-white/10"
+                        className={`w-11 h-11 rounded-xl object-cover border ${isDarkMode ? "border-white/10" : "border-neutral-200"}`}
                         referrerPolicy="no-referrer"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-neutral-100 truncate">{char.name}</p>
+                        <p className={`text-xs font-bold truncate ${isDarkMode ? "text-neutral-100" : "text-neutral-800"}`}>{char.name}</p>
                         <p className="text-[10px] text-accent font-medium truncate">{char.role}</p>
-                        <p className="text-[9px] text-neutral-400 truncate mt-0.5">Aktor: {char.actor}</p>
+                        <p className={`text-[9px] truncate mt-0.5 ${isDarkMode ? "text-neutral-400" : "text-neutral-500"}`}>Aktor: {char.actor}</p>
                       </div>
                     </div>
                   ))}
@@ -386,19 +405,27 @@ export default function Library({ dramas, onPlayEpisode, unlockedEpisodes, favor
                         id={`episode-row-${episode.id}`}
                         key={episode.id}
                         onClick={() => onPlayEpisode(selectedDrama, episode)}
-                        className="flex items-center justify-between p-3.5 rounded-2xl glass hover:bg-white/5 hover:border-accent/30 cursor-pointer group transition-all"
+                        className={`flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer group transition-all ${
+                          isDarkMode 
+                            ? "bg-white/5 border-white/5 hover:bg-white/10 hover:border-accent/30" 
+                            : "bg-white border-neutral-200 hover:bg-neutral-50 hover:border-accent/30 shadow-sm"
+                        }`}
                       >
                         <div className="flex items-center gap-4 flex-1 min-w-0">
                           {/* Play or status index indicator */}
-                          <div className="relative flex-shrink-0 w-11 h-11 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 group-hover:bg-accent group-hover:border-accent transition-colors">
-                            <span className="text-xs font-bold tracking-wider group-hover:hidden text-neutral-300">
+                          <div className={`relative flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center border group-hover:bg-accent group-hover:border-accent transition-colors ${
+                            isDarkMode 
+                              ? "bg-white/5 border-white/10 text-neutral-300" 
+                              : "bg-neutral-100 border-neutral-200 text-neutral-600"
+                          }`}>
+                            <span className="text-xs font-bold tracking-wider group-hover:hidden text-neutral-400">
                               {episode.id}
                             </span>
                             <Play className="w-4 h-4 text-white hidden group-hover:block fill-white" />
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-neutral-200 line-clamp-1 group-hover:text-accent transition-colors">
+                            <h4 className={`text-sm font-bold line-clamp-1 group-hover:text-accent transition-colors ${isDarkMode ? "text-neutral-200" : "text-neutral-800"}`}>
                               {episode.title}
                             </h4>
                             <p className="text-xs text-neutral-500 mt-0.5">

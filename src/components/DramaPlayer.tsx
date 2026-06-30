@@ -17,6 +17,7 @@ interface DramaPlayerProps {
   onAddCoins: (amount: number) => void;
   likedEpisodes: string[];
   toggleLikeEpisode: (dramaId: string, episodeId: number) => void;
+  isDarkMode?: boolean;
 }
 
 export default function DramaPlayer({
@@ -27,7 +28,8 @@ export default function DramaPlayer({
   coins,
   onAddCoins,
   likedEpisodes,
-  toggleLikeEpisode
+  toggleLikeEpisode,
+  isDarkMode = true
 }: DramaPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -38,13 +40,22 @@ export default function DramaPlayer({
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [heartCoords, setHeartCoords] = useState({ x: 0, y: 0 });
   const [isFastForwarding, setIsFastForwarding] = useState(false);
+  const [showShareToast, setShowShareToast] = useState(false);
+  const [isAutoPlay, setIsAutoPlay] = useState<boolean>(() => {
+    const saved = localStorage.getItem("shortdrama_autoplay");
+    return saved !== null ? saved === "true" : true;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("shortdrama_autoplay", String(isAutoPlay));
+  }, [isAutoPlay]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const wasHoldingRef = useRef(false);
 
   // Is current episode unlocked?
-  const isEpisodeLocked = false;
+  const isEpisodeLocked = activeEpisode.isLocked;
 
   // Initialize/Load comments for this drama
   useEffect(() => {
@@ -177,8 +188,34 @@ export default function DramaPlayer({
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Tautan drama berhasil disalin ke papan klip! Bagikan ke teman-temanmu.");
+    const origin = window.location.origin + window.location.pathname;
+    const shareUrl = `${origin}?drama=${activeDrama.id}&episode=${activeEpisode.id}`;
+    
+    try {
+      navigator.clipboard.writeText(shareUrl);
+      setShowShareToast(true);
+      setTimeout(() => {
+        setShowShareToast(false);
+      }, 2500);
+    } catch (err) {
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        setShowShareToast(true);
+        setTimeout(() => {
+          setShowShareToast(false);
+        }, 2500);
+      } catch (copyErr) {
+        console.error("Gagal menyalin link:", copyErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const handleNextEpisode = () => {
@@ -213,6 +250,21 @@ export default function DramaPlayer({
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Auto-Play Toggle */}
+            <button
+              id="autoplay-toggle"
+              onClick={() => setIsAutoPlay(!isAutoPlay)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                isAutoPlay 
+                  ? "bg-accent/15 border-accent/30 text-accent hover:bg-accent/20" 
+                  : "bg-white/5 border-white/10 text-neutral-400 hover:bg-white/10"
+              }`}
+              title={isAutoPlay ? "Auto-Play Aktif" : "Auto-Play Nonaktif"}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${isAutoPlay ? "bg-accent animate-pulse" : "bg-neutral-500"}`} />
+              Auto: {isAutoPlay ? "ON" : "OFF"}
+            </button>
+
             <button 
               id="volume-toggle"
               onClick={() => setIsMuted(!isMuted)}
@@ -260,11 +312,16 @@ export default function DramaPlayer({
               id="active-video-element"
               ref={videoRef}
               src={activeEpisode.videoUrl}
-              loop
+              loop={!isAutoPlay}
               playsInline
               muted={isMuted}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              onEnded={() => {
+                if (isAutoPlay) {
+                  handleNextEpisode();
+                }
+              }}
             />
           ) : (
             // Episode Locked Screen Layer
@@ -366,6 +423,32 @@ export default function DramaPlayer({
                 <span className="text-[11px] font-black tracking-widest uppercase text-accent font-sans">
                   2X PEMUTARAN CEPAT
                 </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Share Toast Notification Overlay */}
+          <AnimatePresence>
+            {showShareToast && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-neutral-900/95 backdrop-blur-md border border-emerald-500/30 text-white px-4 py-3 rounded-2xl z-40 pointer-events-none flex items-center gap-2.5 shadow-xl shadow-black/50 min-w-[280px] justify-center"
+              >
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-black text-neutral-100 uppercase tracking-wide">
+                    Tautan Disalin!
+                  </span>
+                  <span className="text-[9px] text-neutral-400">
+                    Berhasil menyalin link Episode {activeEpisode.id}
+                  </span>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -483,17 +566,25 @@ export default function DramaPlayer({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 left-0 right-0 h-[65%] glass rounded-t-3xl z-50 flex flex-col shadow-2xl border-x-0 border-b-0"
+              className={`absolute bottom-0 left-0 right-0 h-[65%] rounded-t-3xl z-50 flex flex-col shadow-2xl border-t border-x-0 border-b-0 transition-all duration-300 ${
+                isDarkMode 
+                  ? "bg-neutral-900/95 border-white/10 text-white" 
+                  : "bg-white border-neutral-200 text-neutral-900"
+              }`}
             >
               {/* Comment Header */}
-              <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 flex items-center gap-1.5 font-sans">
+              <div className={`p-4 border-b flex justify-between items-center ${isDarkMode ? "border-white/10" : "border-neutral-200"}`}>
+                <h3 className={`text-sm font-bold uppercase tracking-wider flex items-center gap-1.5 font-sans ${isDarkMode ? "text-neutral-300" : "text-neutral-700"}`}>
                   <MessageSquare className="w-4 h-4 text-accent" /> Komentar ({comments.length})
                 </h3>
                 <button
                   id="close-comments"
                   onClick={() => setShowComments(false)}
-                  className="text-neutral-400 hover:text-neutral-200 font-bold text-xs glass px-3 py-1 rounded-full hover:bg-white/5 transition-colors"
+                  className={`font-bold text-xs px-3 py-1 rounded-full border transition-all duration-300 ${
+                    isDarkMode 
+                      ? "text-neutral-400 hover:text-neutral-200 bg-white/5 border-white/10 hover:bg-white/10" 
+                      : "text-neutral-600 hover:text-neutral-900 bg-neutral-100 border-neutral-200 hover:bg-neutral-200"
+                  }`}
                 >
                   Tutup
                 </button>
@@ -506,15 +597,15 @@ export default function DramaPlayer({
                     <img
                       src={comment.avatar}
                       alt={comment.username}
-                      className="w-8 h-8 rounded-full border border-white/10 bg-neutral-950"
+                      className={`w-8 h-8 rounded-full border bg-neutral-950 ${isDarkMode ? "border-white/10" : "border-neutral-200"}`}
                       referrerPolicy="no-referrer"
                     />
                     <div className="flex-1">
                       <div className="flex justify-between items-baseline mb-0.5">
-                        <span className="text-xs font-bold text-neutral-300">{comment.username}</span>
+                        <span className={`text-xs font-bold ${isDarkMode ? "text-neutral-300" : "text-neutral-800"}`}>{comment.username}</span>
                         <span className="text-[9px] text-neutral-500">{comment.time}</span>
                       </div>
-                      <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                      <p className={`text-xs font-light leading-relaxed ${isDarkMode ? "text-neutral-400" : "text-neutral-600"}`}>
                         {comment.text}
                       </p>
                     </div>
@@ -523,14 +614,22 @@ export default function DramaPlayer({
               </div>
 
               {/* Post Comment Input Bar */}
-              <form onSubmit={handlePostComment} className="p-4 glass border-x-0 border-b-0 flex gap-2 rounded-t-2xl">
+              <form onSubmit={handlePostComment} className={`p-4 border-t border-x-0 border-b-0 flex gap-2 rounded-t-2xl transition-colors duration-300 ${
+                isDarkMode 
+                  ? "bg-neutral-900 border-white/10" 
+                  : "bg-neutral-50 border-neutral-200"
+              }`}>
                 <input
                   id="comment-input-field"
                   type="text"
                   placeholder="Ketik komentar romantis Anda..."
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-neutral-100 placeholder:text-neutral-500 focus:outline-none focus:border-accent/50"
+                  className={`flex-1 border rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-accent/50 transition-colors ${
+                    isDarkMode 
+                      ? "bg-white/5 border-white/10 text-neutral-100 placeholder:text-neutral-500" 
+                      : "bg-white border-neutral-200 text-neutral-900 placeholder:text-neutral-400 shadow-sm"
+                  }`}
                 />
                 <button
                   id="comment-submit"
@@ -553,16 +652,24 @@ export default function DramaPlayer({
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="absolute bottom-0 left-0 right-0 h-[50%] glass rounded-t-3xl z-50 flex flex-col shadow-2xl border-x-0 border-b-0"
+              className={`absolute bottom-0 left-0 right-0 h-[50%] rounded-t-3xl z-50 flex flex-col shadow-2xl border-t border-x-0 border-b-0 transition-all duration-300 ${
+                isDarkMode 
+                  ? "bg-neutral-900/95 border-white/10 text-white" 
+                  : "bg-white border-neutral-200 text-neutral-900"
+              }`}
             >
-              <div className="p-4 border-b border-white/10 flex justify-between items-center">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-neutral-300 font-sans">
+              <div className={`p-4 border-b flex justify-between items-center ${isDarkMode ? "border-white/10" : "border-neutral-200"}`}>
+                <h3 className={`text-sm font-bold uppercase tracking-wider font-sans ${isDarkMode ? "text-neutral-300" : "text-neutral-700"}`}>
                   Pilih Episode ({activeDrama.episodesCount})
                 </h3>
                 <button
                   id="close-episodes-selector"
                   onClick={() => setShowEpisodeSelector(false)}
-                  className="text-neutral-400 hover:text-neutral-200 font-bold text-xs glass px-3 py-1 rounded-full hover:bg-white/5 transition-colors"
+                  className={`font-bold text-xs px-3 py-1 rounded-full border transition-all duration-300 ${
+                    isDarkMode 
+                      ? "text-neutral-400 hover:text-neutral-200 bg-white/5 border-white/10 hover:bg-white/10" 
+                      : "text-neutral-600 hover:text-neutral-900 bg-neutral-100 border-neutral-200 hover:bg-neutral-200"
+                  }`}
                 >
                   Tutup
                 </button>
@@ -581,10 +688,12 @@ export default function DramaPlayer({
                         onEpisodeChange(activeDrama, ep);
                         setShowEpisodeSelector(false);
                       }}
-                      className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors ${
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${
                         isCurrent
                           ? "bg-accent/10 border-accent/40 text-accent"
-                          : "glass hover:bg-white/5 text-neutral-300"
+                          : isDarkMode
+                            ? "bg-white/5 border-white/5 hover:bg-white/10 text-neutral-300"
+                            : "bg-neutral-100 border-neutral-200 hover:bg-neutral-200 text-neutral-700 shadow-xs"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -592,7 +701,7 @@ export default function DramaPlayer({
                           {ep.id}
                         </span>
                         <div>
-                          <p className={`text-xs font-bold ${isCurrent ? "text-accent font-black" : "text-neutral-200"}`}>
+                          <p className={`text-xs font-bold ${isCurrent ? "text-accent font-black" : isDarkMode ? "text-neutral-200" : "text-neutral-800"}`}>
                             {ep.title}
                           </p>
                           <p className="text-[10px] text-neutral-500 mt-0.5">Durasi: {ep.duration}</p>
