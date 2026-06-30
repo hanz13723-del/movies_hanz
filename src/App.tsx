@@ -333,6 +333,7 @@ export default function App() {
             likedEpisodes={userData.likedEpisodes}
             toggleLikeEpisode={toggleLikeEpisode}
             isDarkMode={isDarkMode}
+            dramas={dramas}
           />
         );
       case "library":

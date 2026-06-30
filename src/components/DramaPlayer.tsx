@@ -4,7 +4,7 @@ import { MOCK_COMMENTS } from "../data/dramas";
 import { 
   Play, Pause, Heart, MessageCircle, Share2, 
   ChevronLeft, ChevronUp, ChevronDown, Lock, Unlock,
-  Coins, Volume2, VolumeX, MessageSquare, Send 
+  Coins, Volume2, VolumeX, MessageSquare, Send, CheckCircle2, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -62,6 +62,7 @@ interface DramaPlayerProps {
   likedEpisodes: string[];
   toggleLikeEpisode: (dramaId: string, episodeId: number) => void;
   isDarkMode?: boolean;
+  dramas?: Drama[];
 }
 
 export default function DramaPlayer({
@@ -73,7 +74,8 @@ export default function DramaPlayer({
   onAddCoins,
   likedEpisodes,
   toggleLikeEpisode,
-  isDarkMode = true
+  isDarkMode = true,
+  dramas = []
 }: DramaPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -89,6 +91,16 @@ export default function DramaPlayer({
     const saved = localStorage.getItem("shortdrama_autoplay");
     return saved !== null ? saved === "true" : true;
   });
+
+  const [isWatchingAll, setIsWatchingAll] = useState(false);
+
+  useEffect(() => {
+    if (activeEpisode.id !== 1) {
+      setIsWatchingAll(true);
+    } else {
+      setIsWatchingAll(false);
+    }
+  }, [activeDrama.id, activeEpisode.id]);
 
   useEffect(() => {
     localStorage.setItem("shortdrama_autoplay", String(isAutoPlay));
@@ -329,6 +341,17 @@ export default function DramaPlayer({
   };
 
   const handleNextEpisode = () => {
+    if (!isWatchingAll && dramas && dramas.length > 0) {
+      const otherDramas = dramas.filter(d => d.id !== activeDrama.id);
+      const pool = otherDramas.length > 0 ? otherDramas : dramas;
+      const randomDrama = pool[Math.floor(Math.random() * pool.length)];
+      const ep1 = randomDrama.episodes.find(e => e.id === 1) || randomDrama.episodes[0];
+      if (ep1) {
+        onEpisodeChange(randomDrama, ep1);
+        return;
+      }
+    }
+
     const nextIdx = activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) + 1;
     if (nextIdx < activeDrama.episodes.length) {
       onEpisodeChange(activeDrama, activeDrama.episodes[nextIdx]);
@@ -338,6 +361,17 @@ export default function DramaPlayer({
   };
 
   const handlePrevEpisode = () => {
+    if (!isWatchingAll && dramas && dramas.length > 0) {
+      const otherDramas = dramas.filter(d => d.id !== activeDrama.id);
+      const pool = otherDramas.length > 0 ? otherDramas : dramas;
+      const randomDrama = pool[Math.floor(Math.random() * pool.length)];
+      const ep1 = randomDrama.episodes.find(e => e.id === 1) || randomDrama.episodes[0];
+      if (ep1) {
+        onEpisodeChange(randomDrama, ep1);
+        return;
+      }
+    }
+
     const prevIdx = activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) - 1;
     if (prevIdx >= 0) {
       onEpisodeChange(activeDrama, activeDrama.episodes[prevIdx]);
@@ -390,7 +424,7 @@ export default function DramaPlayer({
           <button
             id="prev-episode-button"
             onClick={handlePrevEpisode}
-            disabled={activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) === 0}
+            disabled={isWatchingAll && activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) === 0}
             className="p-2.5 glass hover:bg-white/5 disabled:opacity-30 transition-all shadow-md hover:border-accent/30"
             title="Episode Sebelumnya"
           >
@@ -399,7 +433,7 @@ export default function DramaPlayer({
           <button
             id="next-episode-button"
             onClick={handleNextEpisode}
-            disabled={activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) === activeDrama.episodes.length - 1}
+            disabled={isWatchingAll && activeDrama.episodes.findIndex(ep => ep.id === activeEpisode.id) === activeDrama.episodes.length - 1}
             className="p-2.5 glass hover:bg-white/5 disabled:opacity-30 transition-all shadow-md hover:border-accent/30"
             title="Episode Berikutnya"
           >
@@ -684,6 +718,32 @@ export default function DramaPlayer({
                   <p className="text-xs text-neutral-400 leading-relaxed font-light line-clamp-2 max-w-[85%]">
                     {activeDrama.description}
                   </p>
+
+                  {/* Watch All Episodes / Series Mode Button */}
+                  {!isWatchingAll ? (
+                    <button
+                      id="btn-tonton-semua"
+                      onClick={() => {
+                        setIsWatchingAll(true);
+                        setShowEpisodeSelector(true);
+                      }}
+                      className="mt-3.5 w-full bg-gradient-to-r from-accent to-red-500 hover:from-accent/90 hover:to-red-600 text-white font-extrabold text-[11px] tracking-wider uppercase py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-accent/20 hover:scale-[1.02] active:scale-95 transition-all duration-300 cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300 animate-pulse" />
+                      Tonton Semua Episode ({activeDrama.episodesCount})
+                    </button>
+                  ) : (
+                    <button
+                      id="btn-tonton-semua-active"
+                      onClick={() => {
+                        setIsWatchingAll(false);
+                      }}
+                      className="mt-3 w-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold text-[10px] tracking-wider uppercase py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 hover:bg-emerald-500/20 transition-all duration-300 cursor-pointer animate-pulse"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      Mode Seri: Aktif (Ganti ke Jelajah Acak)
+                    </button>
+                  )}
                 </div>
               </div>
 
